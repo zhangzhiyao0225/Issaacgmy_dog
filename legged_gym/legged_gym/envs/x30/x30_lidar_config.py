@@ -78,8 +78,8 @@ class X30LidarCfg(X30RoughCfg):
     class control(X30RoughCfg.control):
         # PD Drive parameters:
         control_type = 'P'  # 控制类型（P=位置控制，T=力矩控制）
-        stiffness = {'HipX': 100.0, 'HipY': 100.0, 'Knee': 100.0}  # 关节刚度（单位：N·m/rad）
-        damping = {'HipX': 3.0, 'HipY': 3.0, 'Knee': 3.0}  # 关节阻尼（单位：N·m·s/rad）
+        stiffness = {'HipX': 200.0, 'HipY': 200.0, 'Knee': 200.0}  # 关节刚度（单位：N·m/rad）
+        damping = {'HipX': 6.0, 'HipY': 6.0, 'Knee': 6.0}  # 关节阻尼（单位：N·m·s/rad）
         action_scale = 0.25  # 动作缩放因子（目标角度 = 动作 * scale + 默认角度）
         decimation = 20  # policy_dt = sim.dt * decimation = 0.02s
         hip_reduction = 1.0  # 髋关节扭矩缩放因子（用于平衡前后腿负载）

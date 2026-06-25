@@ -47,22 +47,27 @@ class X30RoughCfg( LeggedRobotCfg ):
         rot = [0.0, 0.0, 0.0, 1.0]  # x,y,z,w [quat]
         lin_vel = [0.0, 0.0, 0.0]  # x,y,z [m/s]
         ang_vel = [0.0, 0.0, 0.0]  # x,y,z [rad/s]
-        default_joint_angles = {
-            'FL_HipX_joint': 0.10,
-            'FR_HipX_joint': 0.10,
-            'HL_HipX_joint': 0.10,
-            'HR_HipX_joint': 0.10,
+        default_joint_angles = { # target angles when action = 0.0
+            'FL_HipX_joint': 0.,
+            'FR_HipX_joint': 0.,
+            'HL_HipX_joint': 0.,
+            'HR_HipX_joint': 0.,
 
-            'FL_HipY_joint': -0.715,
-            'FR_HipY_joint': -0.715,
-            'HL_HipY_joint': -0.715,
-            'HR_HipY_joint': -0.715,
+            # todo 1
+            'FL_HipY_joint': -0.68,
+            'FR_HipY_joint': -0.68,
+            'HL_HipY_joint': -0.68,
+            'HR_HipY_joint': -0.68,
+            # 'FL_thigh_joint': -0.6,
+            # 'RL_thigh_joint': -0.6,
+            # 'FR_thigh_joint': -0.6,
+            # 'RR_thigh_joint': -0.6,
 
-            'FL_Knee_joint': 1.43,
-            'FR_Knee_joint': 1.43,
-            'HL_Knee_joint': 1.43,
-            'HR_Knee_joint': 1.43,
-        }
+            'FL_Knee_joint': 1.45,
+            'FR_Knee_joint': 1.45,
+            'HL_Knee_joint': 1.45,
+            'HR_Knee_joint': 1.45,
+            }
 
 
     class terrain( LeggedRobotCfg.terrain ):
@@ -98,6 +103,7 @@ class X30RoughCfg( LeggedRobotCfg ):
             0.00,  # pit
             0.00,  # gap
         ]
+        
         random_difficulty_range = [0.0, 0.3]
         slope_min_deg = 0.0
         slope_max_deg = 8.0
@@ -117,10 +123,10 @@ class X30RoughCfg( LeggedRobotCfg ):
     class control( LeggedRobotCfg.control ):
         # PD Drive parameters:
         control_type = 'P'  # 控制类型（P=位置控制，T=力矩控制）
-        stiffness = {'HipX': 100.0, 'HipY': 100.0, 'Knee': 100.0} # 关节刚度（单位：N·m/rad）
-        damping = {'HipX': 3.0, 'HipY': 3.0, 'Knee': 3.0}    # 关节阻尼（单位：N·m·s/rad）
+        stiffness = {'HipX': 120.0, 'HipY': 120.0, 'Knee': 120.0} # 关节刚度（单位：N·m/rad）
+        damping = {'HipX': 4.0, 'HipY': 4.0, 'Knee': 4.0}    # 关节阻尼（单位：N·m·s/rad）
         action_scale = 0.25  # 动作缩放因子（目标角度 = 动作 * scale + 默认角度）
-        decimation = 20      # policy_dt = sim.dt * decimation = 0.02s
+        decimation = 20       # policy_dt = sim.dt * decimation = 0.02s
         hip_reduction = 1.0 # 髋关节扭矩缩放因子（用于平衡前后腿负载）
 
     class commands( LeggedRobotCfg.commands ):
@@ -312,7 +318,7 @@ class X30RoughCfg( LeggedRobotCfg ):
             height_measurements = 0.1
 
     class sim( LeggedRobotCfg.sim ):
-        dt = 0.001  # 物理仿真步长；配合 control.decimation=20 得到 0.02s 控制周期
+        dt = 0.001  # 物理仿真步长；配合 control.decimation=4 得到 0.02s 控制周期
 
 
 class X30RoughCfgPPO( LeggedRobotCfgPPO ):

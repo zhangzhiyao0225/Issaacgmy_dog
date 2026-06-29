@@ -123,8 +123,8 @@ class X30RoughCfg( LeggedRobotCfg ):
     class control( LeggedRobotCfg.control ):
         # PD Drive parameters:
         control_type = 'P'  # 控制类型（P=位置控制，T=力矩控制）
-        stiffness = {'HipX': 120.0, 'HipY': 120.0, 'Knee': 120.0} # 关节刚度（单位：N·m/rad）
-        damping = {'HipX': 4.0, 'HipY': 4.0, 'Knee': 4.0}    # 关节阻尼（单位：N·m·s/rad）
+        stiffness = {'HipX': 200.0, 'HipY': 200.0, 'Knee': 200.0} # 关节刚度（单位：N·m/rad）
+        damping = {'HipX': 5.0, 'HipY': 5.0, 'Knee': 5.0}    # 关节阻尼（单位：N·m·s/rad）
         action_scale = 0.25  # 动作缩放因子（目标角度 = 动作 * scale + 默认角度）
         decimation = 20       # policy_dt = sim.dt * decimation = 0.02s
         hip_reduction = 1.0 # 髋关节扭矩缩放因子（用于平衡前后腿负载）
@@ -248,8 +248,8 @@ class X30RoughCfg( LeggedRobotCfg ):
             torque_limits = -0.0  # 关节扭矩接近极限 惩罚
             dof_vel = -0.0  # 关节速度过大 惩罚
             dof_acc = -1.8e-7  # 关节加速度 惩罚（若步态抖动，可增大惩罚）
-            stand_still = -0.12  # base原地静止时的关节位置偏差惩罚，增强站立稳定性
-            hip_pos = -0.1  # hip关节位置与默认位置的 偏差 惩罚，抑制后腿外叉；原地静止时惩罚更强
+            stand_still = -0.25  # base原地静止时的关节位置偏差惩罚，增强站立稳定性
+            hip_pos = -0.2  # hip关节位置与默认位置的 偏差 惩罚，抑制后腿外叉；原地静止时惩罚更强
             front_feet_y_distance = -0.8  # 前进时前脚横向间距过小惩罚，防止前腿向中线夹窄
             thigh_pose = 0.0
             calf_pose = 0.0
@@ -258,7 +258,7 @@ class X30RoughCfg( LeggedRobotCfg ):
             joint_power = -2.2e-5  # 关节高功率 惩罚：降低能耗（需平衡运动效率，过高惩罚会导致动作迟缓）
             feet_mirror = -0.035  # 斜对称腿的关节位置偏差 惩罚
             # action
-            action_rate = -0.009  # action变化 惩罚
+            action_rate = -0.015  # action变化 惩罚
             smoothness = -0.004  # action二阶平滑性 惩罚（复杂地形，可适当降低）
             hip_action_magnitude = -0.0  # action 中的 髋关节hip（0,3,6,9）动作幅度 惩罚（防止 > 1.0）
             # contact
@@ -270,7 +270,7 @@ class X30RoughCfg( LeggedRobotCfg ):
             contact_count = -0.08  # 运动时鼓励约2只脚接触地面，抑制四脚一起蹦
             has_contact = 0.15  # (base 原地不动) 时的 四足触地个数 奖励
             feet_stumble = 0.0  # 四足接触到垂直表面 惩罚
-            feet_slide = -0.025  # 脚接触地面具有相对base的速度 惩罚
+            feet_slide = -0.05  # 脚接触地面具有相对base的速度 惩罚
             backward_feet_clearance = -0.8  # 后退时低高度足端移动惩罚，抑制后退拖地
             feet_clearance_base = -0.0  # 大速度下 四足距base目标距离 惩罚
             feet_clearance_terrain = -0.18  # 大速度下 四足离地目标高度 惩罚
@@ -318,7 +318,7 @@ class X30RoughCfg( LeggedRobotCfg ):
             height_measurements = 0.1
 
     class sim( LeggedRobotCfg.sim ):
-        dt = 0.001  # 物理仿真步长；配合 control.decimation=4 得到 0.02s 控制周期
+        dt = 0.001  # 物理仿真步长；配合 control.decimation=20
 
 
 class X30RoughCfgPPO( LeggedRobotCfgPPO ):

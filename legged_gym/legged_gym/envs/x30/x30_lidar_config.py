@@ -49,7 +49,32 @@ class X30LidarCfg(X30RoughCfg):
     class init_state(X30RoughCfg.init_state):
         pos = [0.0, 0.0, 0.51]  # 初始位置（x,y,z）单位：米
 
-    class terrain(X30RoughCfg.terrain):
+    # class terrain(X30RoughCfg.terrain):
+    #     mesh_type = 'trimesh'  # "heightfield" # none, plane, heightfield or trimesh
+    #     horizontal_scale = 0.1  # [m]
+    #     vertical_scale = 0.005  # [m]
+    #     border_size = 15  # [m]
+    #     curriculum = True
+    #     static_friction = 1.0
+    #     dynamic_friction = 1.0
+    #     restitution = 0.
+    #     # rough terrain only:
+    #     measure_heights = True
+    #     measured_points_x = [-0.8, -0.7, -0.6, -0.5, -0.4, -0.3, -0.2, -0.1, 0., 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7,
+    #                          0.8]  # 1mx1.6m rectangle (without center line)
+    #     measured_points_y = [-0.5, -0.4, -0.3, -0.2, -0.1, 0., 0.1, 0.2, 0.3, 0.4, 0.5]
+    #     selected = False  # select a unique terrain type and pass all arguments
+    #     terrain_kwargs = None  # Dict of arguments for selected terrain
+    #     max_init_terrain_level = 5  # starting curriculum state
+    #     terrain_length = 8.
+    #     terrain_width = 8.
+    #     num_rows = 10  # number of terrain rows (levels)
+    #     num_cols = 20  # number of terrain cols (types)
+    #     # terrain types: [flat, rough, smooth_slope, rough_slope, stairs_up, stairs_down, discrete_obstacles, stepping_stones, pit, gap]
+    #     terrain_proportions = [0.3, 0.3, 0.2, 0.2]
+    #     # trimesh only:
+    #     slope_treshold = 0.75  # slopes above this threshold will be corrected to vertical surfaces
+    class terrain( X30RoughCfg.terrain ):
         mesh_type = 'trimesh'  # "heightfield" # none, plane, heightfield or trimesh
         horizontal_scale = 0.1  # [m]
         vertical_scale = 0.005  # [m]
@@ -60,18 +85,44 @@ class X30LidarCfg(X30RoughCfg):
         restitution = 0.
         # rough terrain only:
         measure_heights = True
-        measured_points_x = [-0.8, -0.7, -0.6, -0.5, -0.4, -0.3, -0.2, -0.1, 0., 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7,
-                             0.8]  # 1mx1.6m rectangle (without center line)
+        measured_points_x = [-0.8, -0.7, -0.6, -0.5, -0.4, -0.3, -0.2, -0.1, 0., 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8]  # 1mx1.6m rectangle (without center line)
         measured_points_y = [-0.5, -0.4, -0.3, -0.2, -0.1, 0., 0.1, 0.2, 0.3, 0.4, 0.5]
         selected = False  # select a unique terrain type and pass all arguments
         terrain_kwargs = None  # Dict of arguments for selected terrain
-        max_init_terrain_level = 5  # starting curriculum state
+        max_init_terrain_level = 4  # resume平地模型时先从低中难度台阶开始
+        terrain_curriculum_move_up_ratio = 0.25
+        terrain_curriculum_move_down_command_ratio = 0.20
+        terrain_curriculum_move_down_cap_ratio = 0.15
         terrain_length = 8.
         terrain_width = 8.
         num_rows = 10  # number of terrain rows (levels)
         num_cols = 20  # number of terrain cols (types)
         # terrain types: [flat, rough, smooth_slope, rough_slope, stairs_up, stairs_down, discrete_obstacles, stepping_stones, pit, gap]
-        terrain_proportions = [0.3, 0.3, 0.2, 0.2]
+        terrain_proportions = [
+            0.10,  # flat: 保留少量平地，防止忘掉基础步态
+            0.10,  # rough
+            0.10,  # smooth_slope
+            0.10,  # rough_slope
+            0.30,  # stairs_up: 强化高台阶上行样本
+            0.20,  # stairs_down
+            0.10,  # discrete_obstacles: 随机块/坎路面，保留
+            0.00,  # stepping_stones
+            0.00,  # pit
+            0.00,  # gap
+        ]
+        
+        random_difficulty_range = [0.0, 1.0]
+        slope_min_deg = 8.0
+        slope_max_deg = 22.0
+        stairs_step_height_min = 0.10
+        stairs_step_height_max = 0.25
+        stairs_step_width = 0.35
+        discrete_obstacles_height_min = 0.03
+        discrete_obstacles_height_max = 0.12
+        discrete_obstacles_num_rectangles = 35
+        discrete_obstacles_min_size = 0.35
+        discrete_obstacles_max_size = 0.90
+        discrete_obstacles_platform_size = 3.0
         # trimesh only:
         slope_treshold = 0.75  # slopes above this threshold will be corrected to vertical surfaces
 
@@ -79,7 +130,7 @@ class X30LidarCfg(X30RoughCfg):
         # PD Drive parameters:
         control_type = 'P'  # 控制类型（P=位置控制，T=力矩控制）
         stiffness = {'HipX': 200.0, 'HipY': 200.0, 'Knee': 200.0}  # 关节刚度（单位：N·m/rad）
-        damping = {'HipX': 6.0, 'HipY': 6.0, 'Knee': 6.0}  # 关节阻尼（单位：N·m·s/rad）
+        damping = {'HipX': 5.0, 'HipY': 5.0, 'Knee': 5.0}  # 关节阻尼（单位：N·m·s/rad）
         action_scale = 0.25  # 动作缩放因子（目标角度 = 动作 * scale + 默认角度）
         decimation = 20  # policy_dt = sim.dt * decimation = 0.02s
         hip_reduction = 1.0  # 髋关节扭矩缩放因子（用于平衡前后腿负载）
@@ -141,22 +192,32 @@ class X30LidarCfg(X30RoughCfg):
         # save_data = False
         # save_interval = 1
 
-        sensor_type: LidarType = LidarType.MID360
+        # Training uses a compact Warp grid lidar. Full MID360 initializes 20000 rays
+        # per env, while the policy only consumes 187 lidar observations.
+        sensor_type: LidarType = LidarType.SIMPLE_GRID
         dt: float = 0.02  # LiDAR sensor update step, must match policy dt
         num_sensors: int = 1
-        update_frequency: float = 50.0
+        update_frequency: float = 10.0
 
         max_range: float = 20.0  #最大探测距离
+
+        vertical_line_num: int = 11  # 垂直方向射线层数；11 * 17 = 187，正好对应 num_lidar_observations
+        horizontal_line_num: int = 17  # 水平方向射线列数；越大越细，但每步raycast计算越慢
+        horizontal_fov_deg_min: float = -90.0  # 水平视场左边界，单位deg；-90到90表示看机器人前方180度
+        horizontal_fov_deg_max: float = 90.0  # 水平视场右边界，单位deg
+        vertical_fov_deg_min: float = -25.0  # 垂直视场下边界，单位deg；负值看向地面/脚前方障碍
+        vertical_fov_deg_max: float = 20.0  # 垂直视场上边界，单位deg；保留少量向上视野
 
         enable_sensor_noise: bool = False
         random_distance_noise: float = 0.02
         pixel_dropout_prob: float = 0.01
 
-        nominal_position: list = [0.10, 0.0, 0.082]  # 根据mesh结合验证过的位置 (需和urd中的位置保持一致)
-        nominal_orientation_euler_deg: list = [0., 0., 0.]
+        nominal_position = [0.433, 0.0, -0.055]
+        nominal_orientation_euler_deg = [2.37365, 0.0, 1.57080]
         randomize_placement: bool = False  # 为 True 时暂时不起作用
 
-        debug_vis: bool = True
+        debug_vis: bool = False
+        debug_sample_size: int = 187
         selected_env_idx: int = 0
 
     class termination:
@@ -355,7 +416,7 @@ class X30LidarCfgPPO(X30RoughCfgPPO):
         policy_class_name = 'HIMActorCritic'
         algorithm_class_name = 'HIMPPO'
         num_steps_per_env = 100  # per iteration
-        max_iterations = 1000  # number of policy updates
+        max_iterations = 30000  # number of policy updates
 
         # logging
         save_interval = 100  # check for potential saves every this many iterations

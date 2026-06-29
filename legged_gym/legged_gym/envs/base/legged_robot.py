@@ -125,7 +125,7 @@ class LeggedRobot(BaseTask):
         # 3. 使用激光雷达
         if hasattr(self.cfg, "lidar") and getattr(self.cfg.lidar, "use_lidar", False):
             # 3.1 配置 LiDAR sensor 参数
-            self.lidar_cfg = LidarConfig(
+            lidar_kwargs = dict(
                 sensor_type=self.cfg.lidar.sensor_type,
                 dt=self.cfg.lidar.dt,
                 num_sensors=self.cfg.lidar.num_sensors,
@@ -138,6 +138,17 @@ class LeggedRobot(BaseTask):
                 nominal_orientation_euler_deg=self.cfg.lidar.nominal_orientation_euler_deg,
                 randomize_placement=self.cfg.lidar.randomize_placement,
             )
+            for key in (
+                "horizontal_line_num",
+                "vertical_line_num",
+                "horizontal_fov_deg_min",
+                "horizontal_fov_deg_max",
+                "vertical_fov_deg_min",
+                "vertical_fov_deg_max",
+            ):
+                if hasattr(self.cfg.lidar, key):
+                    lidar_kwargs[key] = getattr(self.cfg.lidar, key)
+            self.lidar_cfg = LidarConfig(**lidar_kwargs)
 
             # 3.2 初始化
             self.sim_time = 0
@@ -158,6 +169,7 @@ class LeggedRobot(BaseTask):
             # 获取 lidar 数据
             # MID360: (num_envs, num_sensors, 20000, 1, 3), (num_envs, num_sensors, 20000, 1)
             self.lidar_tensor, self.lidar_dist_tensor = self.lidar.update()
+            self.lidar_has_valid_scan = False
 
         # if self.cfg.env.reference_state_initialization:
         #     self.amp_loader = AMPLoader(motion_files=self.cfg.env.amp_motion_files, device=self.device, time_between_frames=self.dt)
@@ -260,19 +272,27 @@ class LeggedRobot(BaseTask):
             self.lidar_pos_tensor[:, :] = lidar_pos
             self.lidar_quat_tensor[:, :] = lidar_quat
 
-            # update lidar data
+            # update lidar data at sensor rate, and reuse the last scan between updates
             # MID360: 点云 (num_envs, num_sensors, 20000, 1, 3), 距离 (num_envs, num_sensors, 20000, 1)
-            self.lidar_tensor, self.lidar_dist_tensor = self.lidar.update()
-            # (num_envs, num_sensors, 2000, 3)
-            self.downsampled_lidar_cloud = farthest_point_sampling(self.lidar_tensor.view(self.num_envs, self.lidar_cfg.num_sensors,
-                                                                                          self.lidar_tensor.shape[2], 3), sample_size=2000)
+            lidar_update_dt = 1.0 / self.lidar_cfg.update_frequency
+            if (not self.lidar_has_valid_scan) or self.lidar_state_update_time >= lidar_update_dt:
+                self.lidar_tensor, self.lidar_dist_tensor = self.lidar.update()
+                self.lidar_state_update_time = 0.0
+                self.lidar_has_valid_scan = True
             # print(f"LiDAR distance range: {self.lidar_dist_tensor.min():.2f} - {self.lidar_dist_tensor.max():.2f}")
 
             # debug LiDAR rays in viewer
-            if self.cfg.lidar.debug_vis and (self.lidar_update_time > (1 / self.lidar_cfg.update_frequency)):
-                self.gym.clear_lines(self.viewer)
-                self.draw_lidar_vis()
-                self.lidar_update_time = 0
+            if self.cfg.lidar.debug_vis and (not self.headless):
+                lidar_points = self.lidar_tensor.reshape(self.num_envs, self.lidar_cfg.num_sensors, -1, 3)
+                sample_size = min(int(getattr(self.cfg.lidar, "debug_sample_size", 2000)), lidar_points.shape[2])
+                self.downsampled_lidar_cloud = farthest_point_sampling(
+                    lidar_points,
+                    sample_size=sample_size,
+                )
+                if self.lidar_update_time > (1 / self.lidar_cfg.update_frequency):
+                    self.gym.clear_lines(self.viewer)
+                    self.draw_lidar_vis()
+                    self.lidar_update_time = 0
 
         # 四足的 位置 和 线速度（世界坐标系）
         self.feet_pos = self.rigid_body_states.view(self.num_envs, self.num_bodies, 13)[:, self.feet_indices, 0:3]

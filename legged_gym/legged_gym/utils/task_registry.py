@@ -152,7 +152,11 @@ class TaskRegistry():
             env_cfg_dict = class_to_dict(env_cfg)
             log_cfg_dict.update(env_cfg_dict)
 
-        runner_class = eval(train_cfg.runner_class_name)
+        if train_cfg.runner_class_name == "MGDPPolicyRunner":
+            from rl.MGDP.runners import MGDPPolicyRunner
+            runner_class = MGDPPolicyRunner
+        else:
+            runner_class = eval(train_cfg.runner_class_name)
         runner = runner_class(env, train_cfg_dict, log_dir, device=args.rl_device)
 
         if save_cfg:

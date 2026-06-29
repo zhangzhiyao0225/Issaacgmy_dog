@@ -64,6 +64,14 @@ class LeggedRobot(BaseTask):
 
         super().__init__(self.cfg, sim_params, physics_engine, sim_device, headless)
 
+        self.obs_dict = {}
+        self.morph_priv_info_buf = torch.zeros(
+            self.num_envs,
+            self.cfg.env.num_env_morph_priv_obs,
+            device=self.device,
+            dtype=torch.float,
+        )
+
         if not self.headless:
             self.set_camera(self.cfg.viewer.pos, self.cfg.viewer.lookat)
         self._init_buffers()
@@ -78,6 +86,9 @@ class LeggedRobot(BaseTask):
                 # Additionally initialize actuator network hidden state tensors
                 self.lag_buffer = torch.zeros(self.num_envs, self.cfg.domain_rand.added_lag_timesteps + 1, self.num_actions, dtype=torch.float, device=self.device,
                                                requires_grad=False)
+
+    def get_observations(self):
+        return self.obs_dict
 
     def step(self, actions):
         """ Apply actions, simulate, call self.post_physics_step()
@@ -353,8 +364,14 @@ class LeggedRobot(BaseTask):
 
 
     def create_sim(self):
-        """Creates simulation, terrains and evironments"""
-        super().create_sim()
+        """Creates the base Isaac Gym simulation; terrain/envs are added by mixins."""
+        self.up_axis_idx = 2  # 2 for z, 1 for y -> adapt gravity accordingly
+        self.sim = self.gym.create_sim(
+            self.sim_device_id,
+            self.graphics_device_id,
+            self.physics_engine,
+            self.sim_params,
+        )
 
     def set_camera(self, position, lookat):
         """ Set camera position and direction """

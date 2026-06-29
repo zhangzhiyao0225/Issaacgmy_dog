@@ -43,20 +43,21 @@ def is_primitive_type(obj):
     return not hasattr(obj, '__dict__')
 
 def class_to_dict(obj) -> dict:
-    if not  hasattr(obj,"__dict__"):
+    if isinstance(obj, np.ndarray):
+        return obj.tolist()
+    if isinstance(obj, np.generic):
+        return obj.item()
+    if isinstance(obj, dict):
+        return {key: class_to_dict(val) for key, val in obj.items()}
+    if isinstance(obj, (list, tuple)):
+        return [class_to_dict(item) for item in obj]
+    if not hasattr(obj, "__dict__"):
         return obj
     result = {}
     for key in dir(obj):
         if key.startswith("_"):
             continue
-        element = []
-        val = getattr(obj, key)
-        if isinstance(val, list):
-            for item in val:
-                element.append(class_to_dict(item))
-        else:
-            element = class_to_dict(val)
-        result[key] = element
+        result[key] = class_to_dict(getattr(obj, key))
     return result
 
 def update_class_from_dict(obj, dict_, strict= False):

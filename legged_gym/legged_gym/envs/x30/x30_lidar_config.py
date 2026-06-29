@@ -98,14 +98,26 @@ class X30LidarCfg(X30RoughCfg):
         num_rows = 10  # number of terrain rows (levels)
         num_cols = 20  # number of terrain cols (types)
         # terrain types: [flat, rough, smooth_slope, rough_slope, stairs_up, stairs_down, discrete_obstacles, stepping_stones, pit, gap]
+        # terrain_proportions = [
+        #     0.10,  # flat: 保留少量平地，防止忘掉基础步态
+        #     0.10,  # rough
+        #     0.10,  # smooth_slope
+        #     0.10,  # rough_slope
+        #     0.30,  # stairs_up: 强化高台阶上行样本
+        #     0.20,  # stairs_down
+        #     0.10,  # discrete_obstacles: 随机块/坎路面，保留
+        #     0.00,  # stepping_stones
+        #     0.00,  # pit
+        #     0.00,  # gap
+        # ]
         terrain_proportions = [
-            0.10,  # flat: 保留少量平地，防止忘掉基础步态
-            0.10,  # rough
-            0.10,  # smooth_slope
-            0.10,  # rough_slope
-            0.30,  # stairs_up: 强化高台阶上行样本
-            0.20,  # stairs_down
-            0.10,  # discrete_obstacles: 随机块/坎路面，保留
+            0.80,  # flat: 保留少量平地，防止忘掉基础步态
+            0.20,  # rough
+            0.00,  # smooth_slope
+            0.00,  # rough_slope
+            0.00,  # stairs_up: 强化高台阶上行样本
+            0.00,  # stairs_down
+            0.00,  # discrete_obstacles: 随机块/坎路面
             0.00,  # stepping_stones
             0.00,  # pit
             0.00,  # gap

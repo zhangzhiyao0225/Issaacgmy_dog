@@ -501,14 +501,24 @@ class LeggedRobot(BaseTask):
         return torch.clip(torques, -self.torque_limits, self.torque_limits)
 
     def _reset_dofs(self, env_ids):
-        """ Resets DOF position and velocities of selected environmments
-        Positions are randomly selected within 0.5:cfg.control.1.5 x default positions.
-        Velocities are set to zero.
-        Args:
-            env_ids (List[int]): Environemnt ids
-        """
-        self.dof_pos[env_ids] = self.default_dof_pos * torch_rand_float(0.5, 1.5, (len(env_ids), self.num_actions), device=self.device)
-        self.dof_vel[env_ids] = 0.
+        """Resets DOF positions and velocities for selected environments."""
+        dof_pos_range = getattr(self.cfg.domain_rand, "dof_init_pos_ratio_range", [0.5, 1.5])
+        self.dof_pos[env_ids] = self.default_dof_pos * torch_rand_float(
+            dof_pos_range[0],
+            dof_pos_range[1],
+            (len(env_ids), self.num_actions),
+            device=self.device,
+        )
+        if getattr(self.cfg.domain_rand, "randomize_dof_vel", False):
+            dof_vel_range = getattr(self.cfg.domain_rand, "dof_init_vel_range", [-0.1, 0.1])
+            self.dof_vel[env_ids] = torch_rand_float(
+                dof_vel_range[0],
+                dof_vel_range[1],
+                (len(env_ids), self.num_actions),
+                device=self.device,
+            )
+        else:
+            self.dof_vel[env_ids] = 0.
 
         env_ids_int32 = env_ids.to(dtype=torch.int32)
         self.gym.set_dof_state_tensor_indexed(self.sim,
@@ -1050,7 +1060,11 @@ class LeggedRobot(BaseTask):
     def _reward_base_height(self):
         # Penalize base height away from target
         base_height = torch.mean(self.root_states[:, 2].unsqueeze(1) - self.measured_heights, dim=1)
-        return torch.square(base_height - self.cfg.rewards.base_height_target)
+        height_error = base_height - self.cfg.rewards.base_height_target
+        max_error = getattr(self.cfg.rewards, "max_base_height_error", None)
+        if max_error is not None:
+            height_error = torch.clamp(height_error, -max_error, max_error)
+        return torch.square(height_error)
 
     def _reward_torques(self):
         # Penalize torques

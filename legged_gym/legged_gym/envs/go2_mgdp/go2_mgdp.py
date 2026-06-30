@@ -31,6 +31,11 @@ class Go2MGDP(CameraMixin, Legged_terrains, Legged_camera, Legged_rewards, Legge
         self.noise_gaussian = self.cfg.camera.noise_gaussian
         self.noise_dropout = self.cfg.camera.noise_dropout
         self.normalize = self.cfg.camera.normalize
+        self.disable_cudnn_wm = getattr(self.cfg.camera, 'disable_cudnn_wm', False)
+        if self.disable_cudnn_wm:
+            torch.backends.cudnn.enabled = False
+            torch.backends.cudnn.benchmark = False
+            cprint('World model cuDNN disabled for stable CNN backward', 'yellow')
 
         self.terrain_adaptive_reward = getattr(self.cfg.rewards, 'terrain_adaptive_reward', True)
 
@@ -531,6 +536,22 @@ class Go2MGDP(CameraMixin, Legged_terrains, Legged_camera, Legged_rewards, Legge
         self.time_out_buf = self.episode_length_buf > self.max_episode_length  # no terminal reward for time-outs
         self.reset_buf |= self.time_out_buf
 
+        termination_cfg = getattr(self.cfg, "termination", None)
+        if termination_cfg is not None:
+            min_base_height = getattr(termination_cfg, "min_base_height", None)
+            if min_base_height is not None and hasattr(self, "measured_heights"):
+                base_height = torch.mean(self.root_states[:, 2].unsqueeze(1) - self.measured_heights, dim=1)
+                self.reset_buf |= base_height < min_base_height
+
+            max_lin_vel_z = getattr(termination_cfg, "max_lin_vel_z", None)
+            if max_lin_vel_z is not None:
+                self.reset_buf |= torch.abs(self.base_lin_vel[:, 2]) > max_lin_vel_z
+
+            max_projected_gravity_xy = getattr(termination_cfg, "max_projected_gravity_xy", None)
+            if max_projected_gravity_xy is not None:
+                gravity_xy = torch.norm(self.projected_gravity[:, :2], dim=1)
+                self.reset_buf |= gravity_xy > max_projected_gravity_xy
+
         if self.cfg.terrain.mesh_type == 'gap_parkour':
             base_id = self.env_class > 2
 
@@ -768,7 +789,11 @@ class Go2MGDP(CameraMixin, Legged_terrains, Legged_camera, Legged_rewards, Legge
 
     def _reward_lin_vel_z(self):
         # Penalize z axis base linear velocity
-        rew = torch.square(self.base_lin_vel[:, 2])
+        lin_vel_z = self.base_lin_vel[:, 2]
+        max_lin_vel_z = getattr(self.cfg.rewards, "max_lin_vel_z_penalty", None)
+        if max_lin_vel_z is not None:
+            lin_vel_z = torch.clamp(lin_vel_z, -max_lin_vel_z, max_lin_vel_z)
+        rew = torch.square(lin_vel_z)
         # print(self.env_class)
         if self.terrain_adaptive_reward:
             if self.cfg.terrain.mesh_type in ["mix"]:

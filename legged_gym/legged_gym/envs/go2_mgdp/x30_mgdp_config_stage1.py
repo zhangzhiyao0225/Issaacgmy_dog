@@ -48,6 +48,7 @@ class X30MGDPCfgStage1(LeggedRobotBaseCfg):
 
         update_wm = True
         use_map_decoder = True
+        disable_cudnn_wm = True
 
         wm_visual_mse_weight = 1.2
         wm_visual_l1_weight = 0.0
@@ -78,10 +79,10 @@ class X30MGDPCfgStage1(LeggedRobotBaseCfg):
         border_size = 15
         terrain_length = 8.
         terrain_width = 8.
-        num_rows = 1
-        num_cols = 10
-        # Stage1: flat platforms plus light roughness. With row difficulty 0,
-        # the first terrain bucket is effectively flat.
+        # Keep the training mesh larger than the IsaacGym env grid; otherwise
+        # high num_envs runs spawn part of the batch outside the terrain.
+        num_rows = 16
+        num_cols = 40
         terrain_proportions = [0.80, 0.20, 0.0, 0.0, 0.0, 0.0, 0.0]
         slope_treshold = 0.75
 
@@ -96,14 +97,14 @@ class X30MGDPCfgStage1(LeggedRobotBaseCfg):
         curriculum = True
         heading_command = False
         zero_command = True
-        max_curriculum = 1.0
-        min_curriculum = -1.0
+        max_curriculum = 0.5
+        min_curriculum = 0.0
         resampling_time = 10.0
 
         class ranges(LeggedRobotBaseCfg.commands.ranges):
-            lin_vel_x = [-0.5, 1.0]
-            lin_vel_y = [-0.5, 0.5]
-            ang_vel_yaw = [-1.0, 1.0]
+            lin_vel_x = [0.0, 0.5]
+            lin_vel_y = [0.0, 0.0]
+            ang_vel_yaw = [-0.3, 0.3]
             heading = [-3.14, 3.14]
 
     class init_state(LeggedRobotBaseCfg.init_state):
@@ -138,9 +139,9 @@ class X30MGDPCfgStage1(LeggedRobotBaseCfg):
         asset_name = ["x30_mgdp"]
         foot_name = "FOOT"
         penalize_contacts_on_narrow = ["TORSO", "THIGH", "SHANK"]
-        terminate_after_contacts_on_narrow = ["TORSO"]
+        terminate_after_contacts_on_narrow = []
         penalize_contacts_on = ["TORSO", "THIGH", "SHANK"]
-        terminate_after_contacts_on = ["TORSO"]
+        terminate_after_contacts_on = []
         self_collisions = 1
         collapse_fixed_joints = False
         flip_visual_attachments = False
@@ -161,6 +162,11 @@ class X30MGDPCfgStage1(LeggedRobotBaseCfg):
         enableMaxFootHeight = False
         enableMeasuredHeight = True
 
+    class termination:
+        min_base_height = 0.18
+        max_lin_vel_z = 5.0
+        max_projected_gravity_xy = 0.95
+
     class domain_rand(LeggedRobotBaseCfg.domain_rand):
         randomize_base_mass = True
         added_mass_range = [0.0, 3.0]
@@ -179,6 +185,9 @@ class X30MGDPCfgStage1(LeggedRobotBaseCfg):
         added_lag_timesteps_sacle = [0, 2]
         randomize_motor_offset = False
         added_motor_offset = [-0.01, 0.01]
+        dof_init_pos_ratio_range = [0.95, 1.05]
+        randomize_dof_vel = False
+        dof_init_vel_range = [-0.1, 0.1]
         randomize_action_latency = False
         latency_range = [0.00, 0.02]
         push_robots = False
@@ -194,12 +203,15 @@ class X30MGDPCfgStage1(LeggedRobotBaseCfg):
         soft_torque_limit = 0.95
         gait_threshold = [0.0, 1.2]
         lin_vel_clip = 0.1
-        only_positive_rewards = False
+        only_positive_rewards = True
         foot_height_target = 0.10
+        max_base_height_error = 0.5
+        max_lin_vel_z_penalty = 3.0
 
         class scales(LeggedRobotBaseCfg.rewards.scales):
-            tracking_lin_vel = 1.5
-            tracking_ang_vel = 0.8
+            alive = 0.5
+            tracking_lin_vel = 1.2
+            tracking_ang_vel = 0.5
             lin_vel_z = -2.0
             ang_vel_xy = -0.10
             torques = -1e-5
@@ -243,6 +255,12 @@ class X30MGDPCfgStage1(LeggedRobotBaseCfg):
 
 
 class X30MGDPCfgPPOStage1(LeggedRobotBaseCfgPPO):
+    class policy(LeggedRobotBaseCfgPPO.policy):
+        init_noise_std = 0.3
+        actor_hidden_dims = [512, 256, 128]
+        critic_hidden_dims = [512, 256, 128]
+        activation = 'elu'
+
     class runner(LeggedRobotBaseCfgPPO.runner):
         run_name = ''
         max_iterations = 30000

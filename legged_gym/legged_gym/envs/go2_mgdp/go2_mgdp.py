@@ -959,23 +959,25 @@ class Go2MGDP(CameraMixin, Legged_terrains, Legged_camera, Legged_rewards, Legge
         if env_ids.numel() == 0:
             return
 
-        env_list = self.env_class[env_ids]
+        if self.cfg.terrain.mesh_type in ["mix", "gap_parkour"] and hasattr(self, "env_class"):
+            env_list = self.env_class[env_ids]
+            if self.cfg.terrain.mesh_type in ["mix"]:
+                easy_mask = (env_list == 0) | (env_list == 1) | (env_list == 2) | (env_list == 3) | (env_list == 4)
+            else:
+                easy_mask = (env_list == 0) | (env_list == 1) | (env_list == 2)
+            easy_ids = env_ids[easy_mask]
+            hard_ids = env_ids[~easy_mask]
+        else:
+            easy_ids = env_ids
+            hard_ids = env_ids[:0]
 
-        if self.cfg.terrain.mesh_type in ["mix"]:
-            easy_mask = (env_list == 0) | (env_list == 1) | (env_list == 2) | (env_list == 3) | (env_list == 4)
-        if self.cfg.terrain.mesh_type in ["gap_parkour"]:
-            easy_mask = (env_list == 0) | (env_list == 1) | (env_list == 2)
-
-        easy_ids = env_ids[easy_mask]
-        hard_ids = env_ids[~easy_mask]
-
-        if easy_ids.numel() > 0 or hard_ids.numel() > 0:
-            if self.common_step_counter < 2e6:
-                self._resample_easy_commands(easy_ids)
+        if easy_ids.numel() > 0:
+            self._resample_easy_commands(easy_ids)
+        if hard_ids.numel() > 0:
+            if "new_lin_vel_x" in self.command_ranges:
                 self._resample_hard_commands(hard_ids)
             else:
-                self._resample_easy_commands(easy_ids)
-                self._resample_hard_commands(hard_ids)
+                self._resample_easy_commands(hard_ids)
         # set small commands to zero
         if self.cfg.commands.zero_command and env_ids.numel() > 0:
             self.commands[env_ids, :2] *= (torch.norm(self.commands[env_ids, :2], dim=1) > 0.2).unsqueeze(1)

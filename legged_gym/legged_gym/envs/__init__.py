@@ -51,6 +51,8 @@ from .x30.x30_lidar_config import X30LidarCfg, X30LidarCfgPPO
 from .go2_mgdp.go2_mgdp import Go2MGDP
 from .go2_mgdp.go2_mgdp_config_stage1 import Go2MGDPCfgStage1, Go2MGDPCfgPPOStage1
 from .go2_mgdp.go2_mgdp_config_stage2 import Go2MGDPCfgStage2, Go2MGDPCfgPPOStage2
+from .go2_mgdp.x30_mgdp_config_stage1 import X30MGDPCfgStage1, X30MGDPCfgPPOStage1
+from .go2_mgdp.x30_mgdp_config_stage2 import X30MGDPCfgStage2, X30MGDPCfgPPOStage2
 from .dolang.dl_config import DolangRoughCfg, DolangRoughCfgPPO
 
 import os
@@ -75,4 +77,6 @@ task_registry.register("x30_stairs", LeggedRobot, X30StairsCfg(), X30StairsCfgPP
 task_registry.register("x30_lidar", LeggedRobot, X30LidarCfg(), X30LidarCfgPPO())
 task_registry.register("go2_mgdp_stage1", Go2MGDP, Go2MGDPCfgStage1(), Go2MGDPCfgPPOStage1())
 task_registry.register("go2_mgdp_stage2", Go2MGDP, Go2MGDPCfgStage2(), Go2MGDPCfgPPOStage2())
+task_registry.register("x30_mgdp_stage1", Go2MGDP, X30MGDPCfgStage1(), X30MGDPCfgPPOStage1())
+task_registry.register("x30_mgdp_stage2", Go2MGDP, X30MGDPCfgStage2(), X30MGDPCfgPPOStage2())
 task_registry.register("dolang", LeggedRobot, DolangRoughCfg(), DolangRoughCfgPPO())

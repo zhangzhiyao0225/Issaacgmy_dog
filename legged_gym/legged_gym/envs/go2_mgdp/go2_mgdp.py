@@ -4,6 +4,7 @@ from .legged_robot_rewards import Legged_rewards
 from .legged_robot_camera import Legged_camera, CameraMixin
 from .go2_mgdp_config_stage1 import Go2MGDPCfgStage1, Go2MGDPCfgPPOStage1
 import cv2, os
+import copy
 import torch
 from isaacgym.torch_utils import *
 from isaacgym import gymtorch, gymapi, gymutil
@@ -155,13 +156,38 @@ class Go2MGDP(CameraMixin, Legged_terrains, Legged_camera, Legged_rewards, Legge
             from .utils.sensor_config import Camera, Lidar, ImageProcess
             cfg = WarpConfig()
             if self.cfg.camera.use_camera == True:
-                cfg.camera.pattern = Camera.pattern
-                cfg.camera.offset = Camera.offset
-                cfg.camera.process = Camera.process
-                print('camera_config', Camera())
+                cfg.camera.pattern = copy.deepcopy(Camera.pattern)
+                cfg.camera.offset = copy.deepcopy(Camera.offset)
+                cfg.camera.process = copy.deepcopy(Camera.process)
+                camera_cfg = self.cfg.camera
+                if hasattr(camera_cfg, 'offset_translation'):
+                    cfg.camera.offset.translation = list(camera_cfg.offset_translation)
+                if hasattr(camera_cfg, 'offset_rotation'):
+                    cfg.camera.offset.rotation = list(camera_cfg.offset_rotation)
+                if hasattr(camera_cfg, 'offset_trans_rand_min'):
+                    cfg.camera.offset.trans_rand.min = list(camera_cfg.offset_trans_rand_min)
+                if hasattr(camera_cfg, 'offset_trans_rand_max'):
+                    cfg.camera.offset.trans_rand.max = list(camera_cfg.offset_trans_rand_max)
+                if hasattr(camera_cfg, 'offset_rot_rand_min'):
+                    cfg.camera.offset.rot_rand.min = list(camera_cfg.offset_rot_rand_min)
+                if hasattr(camera_cfg, 'offset_rot_rand_max'):
+                    cfg.camera.offset.rot_rand.max = list(camera_cfg.offset_rot_rand_max)
+                if hasattr(camera_cfg, 'resized') and camera_cfg.resized is not None:
+                    cfg.camera.process.resize = list(camera_cfg.resized)
+                if hasattr(camera_cfg, 'near_clip') and hasattr(camera_cfg, 'far_clip'):
+                    cfg.camera.process.clip = [camera_cfg.near_clip, camera_cfg.far_clip]
+                if hasattr(camera_cfg, 'normalize'):
+                    cfg.camera.process.normalize = camera_cfg.normalize
+                if hasattr(camera_cfg, 'noise_gaussian') and camera_cfg.noise_gaussian is not None:
+                    cfg.camera.process.noise.gaussian = camera_cfg.noise_gaussian
+                if hasattr(camera_cfg, 'noise_dropout') and camera_cfg.noise_dropout is not None:
+                    cfg.camera.process.noise.dropout = camera_cfg.noise_dropout
+                if hasattr(camera_cfg, 'horizontal_fov') and camera_cfg.horizontal_fov is not None:
+                    cfg.camera.pattern.horizontal_fov_deg = camera_cfg.horizontal_fov
+                print('camera_config', cfg.camera)
             if self.cfg.camera.use_lidar == True:
-                cfg.lidar.pattern = Lidar().pattern
-                print('lidar_config', Lidar().pattern)
+                cfg.lidar.pattern = copy.deepcopy(Lidar().pattern)
+                print('lidar_config', cfg.lidar.pattern)
             else:
                 cfg.lidar = None
 

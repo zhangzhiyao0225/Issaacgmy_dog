@@ -209,6 +209,10 @@ class X30MGDPCfgStage1(LeggedRobotBaseCfg):
         max_lin_vel_z_penalty = 3.0
 
         class scales(LeggedRobotBaseCfg.rewards.scales):
+            # Scale is multiplied by control dt (=0.02), so -50 becomes about
+            # -1.0 for every non-timeout reset. This keeps the policy from
+            # learning a short-episode fall/reset shortcut.
+            termination = -50.0
             alive = 0.5
             tracking_lin_vel = 1.2
             tracking_ang_vel = 0.5
@@ -260,6 +264,9 @@ class X30MGDPCfgPPOStage1(LeggedRobotBaseCfgPPO):
         actor_hidden_dims = [512, 256, 128]
         critic_hidden_dims = [512, 256, 128]
         activation = 'elu'
+
+    class algorithm(LeggedRobotBaseCfgPPO.algorithm):
+        entropy_coef = 0.0
 
     class runner(LeggedRobotBaseCfgPPO.runner):
         run_name = ''

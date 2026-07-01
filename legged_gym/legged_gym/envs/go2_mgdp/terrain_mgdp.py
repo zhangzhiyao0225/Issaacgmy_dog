@@ -179,8 +179,9 @@ class Terrain:
 
             choice = np.random.uniform(0, 1)
 
-            # difficulty = 0.4
-            difficulty = np.random.choice([0.2, 0.4, 0.6, 0.75, 0.9])
+            difficulty_choices = getattr(self.cfg, "randomized_terrain_difficulty_choices",
+                                         [0.2, 0.4, 0.6, 0.75, 0.9])
+            difficulty = np.random.choice(difficulty_choices)
             terrain = self.make_terrain(choice, difficulty)
             self.add_terrain_to_map(terrain, i, j)
 

@@ -889,7 +889,10 @@ class LeggedRobot(BaseTask):
             self.env_origins = torch.zeros(self.num_envs, 3, device=self.device, requires_grad=False)
             # put urdf at the origins defined by the terrains
             max_init_level = self.cfg.terrain.max_init_terrain_level
-            if not self.cfg.terrain.curriculum: max_init_level = self.cfg.terrain.num_rows - 1
+            sample_all_levels = getattr(self.cfg.terrain, "sample_all_levels_when_not_curriculum", True)
+            if not self.cfg.terrain.curriculum and sample_all_levels:
+                max_init_level = self.cfg.terrain.num_rows - 1
+            max_init_level = min(max_init_level, self.cfg.terrain.num_rows - 1)
             self.terrain_levels = torch.randint(0, max_init_level + 1, (self.num_envs,), device=self.device)
             self.terrain_types = torch.div(torch.arange(self.num_envs, device=self.device), (self.num_envs/self.cfg.terrain.num_cols), rounding_mode='floor').to(torch.long)
 

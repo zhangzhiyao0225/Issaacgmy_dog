@@ -74,6 +74,11 @@ class X30MGDPCfgStage1(LeggedRobotBaseCfg):
         measure_heights = True
         curriculum = False
         max_init_terrain_level = 0
+        # Stage1 should be flat + rough-flat only. With difficulty 0,
+        # add_trimesh_terrain creates flat terrain for the first type and
+        # flat terrain with random roughness for the second type.
+        randomized_terrain_difficulty_choices = [0.0]
+        sample_all_levels_when_not_curriculum = True
         horizontal_scale = 0.1
         vertical_scale = 0.005
         border_size = 15

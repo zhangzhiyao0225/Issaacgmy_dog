@@ -114,16 +114,51 @@ def parse_sim_params(args, cfg):
 
     return sim_params
 
+def _model_checkpoint_index(filename):
+    name, ext = os.path.splitext(filename)
+    if ext != ".pt" or not name.startswith("model_"):
+        return None
+    suffix = name.split("_")[-1]
+    if not suffix.isdigit():
+        return None
+    return int(suffix)
+
+def _list_numbered_models(model_dir):
+    if not os.path.isdir(model_dir):
+        return []
+    models = []
+    for file in os.listdir(model_dir):
+        checkpoint = _model_checkpoint_index(file)
+        if checkpoint is not None:
+            models.append((checkpoint, file))
+    models.sort(key=lambda item: item[0])
+    return [file for _, file in models]
+
+def _model_search_dirs(run_dir):
+    return [run_dir, os.path.join(run_dir, "stage1_nn")]
+
+def _find_model_dir(run_dir):
+    for model_dir in _model_search_dirs(run_dir):
+        if _list_numbered_models(model_dir):
+            return model_dir
+    return None
+
 def get_load_path(root, load_run=-1, checkpoint=-1):
     if load_run==-1:
-        try:
-            runs = os.listdir(root)
-            #TODO sort by date to handle change of month
-            runs.sort()
-            if 'exported' in runs: runs.remove('exported')
-            last_run = os.path.join(root, runs[-1])
-        except:
+        if not os.path.isdir(root):
             raise ValueError("No runs in this directory: " + root)
+        runs = os.listdir(root)
+        #TODO sort by date to handle change of month
+        runs.sort()
+        if 'exported' in runs: runs.remove('exported')
+        last_run = None
+        for run in reversed(runs):
+            run_path = os.path.join(root, run)
+            if os.path.isdir(run_path) and _find_model_dir(run_path) is not None:
+                last_run = run_path
+                break
+        if last_run is None:
+            raise ValueError("No model_*.pt checkpoints in this directory: " + root)
         load_run = last_run
     elif os.path.isabs(load_run):
         print("[INFO] Loading load_run as absolute path:", load_run)
@@ -132,13 +167,22 @@ def get_load_path(root, load_run=-1, checkpoint=-1):
         print("[INFO] Loading load_run as relative path:", load_run)
 
     if checkpoint==-1:
-        models = [file for file in os.listdir(load_run) if 'model' in file]
-        models.sort(key=lambda m: '{0:0>15}'.format(m))
+        model_dir = _find_model_dir(load_run)
+        if model_dir is None:
+            raise ValueError("No model_*.pt checkpoints in run directory or stage1_nn: " + load_run)
+        models = _list_numbered_models(model_dir)
         model = models[-1]
     else:
         model = "model_{}.pt".format(checkpoint) 
+        model_dir = None
+        for candidate_dir in _model_search_dirs(load_run):
+            if os.path.isfile(os.path.join(candidate_dir, model)):
+                model_dir = candidate_dir
+                break
+        if model_dir is None:
+            raise ValueError("Checkpoint {} not found in run directory or stage1_nn: {}".format(model, load_run))
 
-    load_path = os.path.join(load_run, model)
+    load_path = os.path.join(model_dir, model)
     return load_path
 
 def update_cfg_from_args(env_cfg, cfg_train, args):

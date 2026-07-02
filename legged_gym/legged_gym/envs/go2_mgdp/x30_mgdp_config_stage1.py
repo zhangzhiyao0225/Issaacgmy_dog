@@ -101,15 +101,15 @@ class X30MGDPCfgStage1(LeggedRobotBaseCfg):
     class commands(LeggedRobotBaseCfg.commands):
         curriculum = True
         heading_command = False
-        zero_command = True
-        max_curriculum = 0.5
-        min_curriculum = 0.0
+        zero_command = False
+        max_curriculum = 0.8
+        min_curriculum = 0.25
         resampling_time = 10.0
 
         class ranges(LeggedRobotBaseCfg.commands.ranges):
-            lin_vel_x = [0.0, 0.5]
+            lin_vel_x = [0.3, 0.6]
             lin_vel_y = [0.0, 0.0]
-            ang_vel_yaw = [-0.3, 0.3]
+            ang_vel_yaw = [0.0, 0.0]
             heading = [-3.14, 3.14]
 
     class init_state(LeggedRobotBaseCfg.init_state):
@@ -208,6 +208,8 @@ class X30MGDPCfgStage1(LeggedRobotBaseCfg):
         soft_torque_limit = 0.95
         gait_threshold = [0.0, 1.2]
         lin_vel_clip = 0.1
+        strict_tracking_lin_vel = True
+        tracking_sigma = 0.10
         only_positive_rewards = True
         foot_height_target = 0.10
         max_base_height_error = 0.5
@@ -218,9 +220,9 @@ class X30MGDPCfgStage1(LeggedRobotBaseCfg):
             # -1.0 for every non-timeout reset. This keeps the policy from
             # learning a short-episode fall/reset shortcut.
             termination = -50.0
-            alive = 0.5
-            tracking_lin_vel = 1.2
-            tracking_ang_vel = 0.5
+            alive = 0.1
+            tracking_lin_vel = 2.0
+            tracking_ang_vel = 0.2
             lin_vel_z = -2.0
             ang_vel_xy = -0.10
             torques = -1e-5

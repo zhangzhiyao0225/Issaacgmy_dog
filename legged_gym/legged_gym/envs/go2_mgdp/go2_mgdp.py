@@ -757,6 +757,13 @@ class Go2MGDP(CameraMixin, Legged_terrains, Legged_camera, Legged_rewards, Legge
 
     def _reward_tracking_lin_vel(self):
         # Tracking of linear velocity commands (xy axes)
+        if getattr(self.cfg.rewards, "strict_tracking_lin_vel", False):
+            lin_vel_error = torch.sum(torch.square(self.commands[:, :2] - self.base_lin_vel[:, :2]), dim=1)
+            tracking_sigma = torch.tensor(self.cfg.rewards.tracking_sigma,
+                                          dtype=self.commands.dtype,
+                                          device=self.commands.device)
+            return torch.exp(-lin_vel_error / tracking_sigma)
+
         lin_vel = self.base_lin_vel[:, :2].clone()
 
         lin_vel_clip = torch.tensor(self.cfg.rewards.lin_vel_clip,
